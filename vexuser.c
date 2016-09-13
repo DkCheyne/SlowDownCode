@@ -116,6 +116,11 @@ vexUserSetup()
     vexDigitalConfigure( dConfig, DIG_CONFIG_SIZE( dConfig ) );
     vexMotorConfigure( mConfig, MOT_CONFIG_SIZE( mConfig ) );
 
+    #define bottomLeft kVexMotor_1
+    #define bottomRight kVexMotor_2
+    #define topLeft kVexMotor_3
+    #define topRight kVexMotor_4
+
 
     // Creating the JerkControlThd... Static means no other task can see its varibles
     chThdCreateStatic(waJerkControlThd, sizeof(waJerkControlThd), NORMALPRIO-1, JerkControlThd, NULL);
@@ -135,7 +140,7 @@ vexUserSetup()
 void
 vexUserInit()
 {
-
+int speedArray[2] = {0, 0};
 
 }
 
@@ -182,13 +187,53 @@ vexAutonomous( void *arg )
  *  Instead the thread is started at the start of both types of movement
  *  string is designed so that 
  */
- void
- vexBaseControl(int calledFrom);
+ int
+ vexBaseControl(int calledFrom, int valueForward, int valueTurn);
 {
     // 1 means that it was called from userControl
     if(calledFrom == 1)
     {
         // Execute the code for userControl
+
+
+        //Going Forward Jerk Control
+        if ((valueForward - speedArray[0]) > 2 )
+        {
+            vexMotorSet(bottomRight, speedArray[0] + 2);
+            vexMotorSet(bottomLeft, speedArray[0] + 2);
+            valueForward = speedArray[0];
+            valueForward = valueForward + 2;
+            speedArray[0] = valueForward;
+        
+        }
+        else if(valueForward - speedArray[0] <= 2 )
+        {
+            vexMotorSet(bottomRight, valueForward);
+            vexMotorSet(bottomLeft, valueForward);
+            speedArray[0] = valueForward;
+        }
+        
+        // Turning Jerk Control
+        if ((valueTurn - speedArray[1]) > 2);
+        {
+            vexMotorSet(bottomRight, -(speedArray[1] + 2) );
+            vexMotorSet(bottomLeft, (speedArray + 2) );
+            vexMotorSet(topRight, -(speedArray[1] + 2) );
+            vexMotorSet(topLeft, (speedArray[1] + 2) );
+            valueTurn = speedArray[1];
+            valueTurn = valueTurn + 2;
+            speedArray[1] = valueTurn;
+        }
+        else if( (valueTurn - speedArray[1] < 2) )
+        {
+            vexMotorSet(bottomRight, -(valueTurn) );
+            vexMotorSet(bottomLeft, valueTurn);
+            vexMotorSet(topRight, -(valueTurn) );
+            vexMotorSet(topLeft, valueTurn);
+
+        }
+
+        return speedArray;
 
     }
 
@@ -224,16 +269,13 @@ vexOperator( void *arg )
     // Must call this
     vexTaskRegister("operator");
 
-    // Starting the JerkControl thread so that it works in user control
-    StartTask( JerkControlThd );
-
 
     // Run until asked to terminate
     while(!chThdShouldTerminate())
         {
 
         // the 1 signifies that this call came from the user portion of movement
-        vexBaseControl(1);
+        vexBaseControl(1, vexControllerget(Ch3), vexControllerget(Ch1));
 
 
         // Don't hog cpu
@@ -242,5 +284,6 @@ vexOperator( void *arg )
 
     return (msg_t)0;
 }
+
 
 
