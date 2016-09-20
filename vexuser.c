@@ -62,7 +62,7 @@ static  vexDigiCfg  dConfig[kVexDigital_Num] = {
 };
 
 static  vexMotorCfg mConfig[kVexMotorNum] = {
-        { kVexMotor_1,      kVexMotor393T,           kVexMotorNormal,       kVexSensorIME,         kImeChannel_1 },
+        { kVexMotor_1,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_2,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_3,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_4,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
@@ -71,36 +71,8 @@ static  vexMotorCfg mConfig[kVexMotorNum] = {
         { kVexMotor_7,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_8,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_9,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
-        { kVexMotor_10,     kVexMotor393T,           kVexMotorNormal,       kVexSensorIME,         kImeChannel_2 }
+        { kVexMotor_10,     kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 }
 };
-
-
-
-// Defining working space for speed smoothing control (need seperate timing loop for the )
-static WORKING_AREA(waJerkControlThd, 512);
-static msg_t
-
-//
-JerkControlThd( void *arg)
-{
-    (void)arg;
-    // Registering the task so competiction control can kill it
-    vexTaskRegister(("Jerk"));
-    while(true)
-    {
-
-        // Using vexSleep rather than chThdSkeeoMilliseconds so compitition control can kill it
-        //This is so the thread does not take up all the processor
-        vexSleep(25);
-    }
-    // MAGIC
-    return(msg_t)0;
-}
-
-
-
-
-
 
 
 /*-----------------------------------------------------------------------------*/
@@ -108,7 +80,6 @@ JerkControlThd( void *arg)
 /*-----------------------------------------------------------------------------*/
 /** @details
  *  The digital and motor ports can (should) be configured here.
- *  JerkControl was created here so that autonoumous has contorl over it
  */
 void
 vexUserSetup()
@@ -120,12 +91,6 @@ vexUserSetup()
     #define bottomRight kVexMotor_2
     #define topLeft kVexMotor_3
     #define topRight kVexMotor_4
-
-
-    // Creating the JerkControlThd... Static means no other task can see its varibles
-    chThdCreateStatic(waJerkControlThd, sizeof(waJerkControlThd), NORMALPRIO-1, JerkControlThd, NULL);
-
-    // Starting the thread so it can be used
 
 }
 
@@ -158,9 +123,6 @@ vexAutonomous( void *arg )
     // Must call this
     vexTaskRegister("auton");
 
-    // Starting the JerkControl thread so that it works in auton
-    StartTask( JerkControlThd );
-
     while(1)
         {
         
@@ -180,18 +142,13 @@ vexAutonomous( void *arg )
 /** @brief      Base Control                                                   */
 /*-----------------------------------------------------------------------------*/
 /** @details
- *  This function determines how the base moves.
- *  The actuall speed that the motors turn at is determines my JerkControlThd
- *  This is so that the motors have time to speed up avioding over heating issues'
- *  DO NOT start the thread here as the function is called continousally
- *  Instead the thread is started at the start of both types of movement
- *  string is designed so that 
+ *  This function determines how the base moves
  */
  int
- vexBaseControl(int calledFrom, int valueForward, int valueTurn);
+ vexBaseControl(int valueForward, int valueTurn, int Turbo);
 {
     // 1 means that it was called from userControl
-    if(calledFrom == 1)
+    if(byPass == 0)
     {
         // Execute the code for userControl
 
@@ -217,7 +174,7 @@ vexAutonomous( void *arg )
         if ((valueTurn - speedArray[1]) > 2);
         {
             vexMotorSet(bottomRight, -(speedArray[1] + 2) );
-            vexMotorSet(bottomLeft, (speedArray + 2) );
+            vexMotorSet(bottomLeft, (speedArray[1] + 2) );
             vexMotorSet(topRight, -(speedArray[1] + 2) );
             vexMotorSet(topLeft, (speedArray[1] + 2) );
             valueTurn = speedArray[1];
@@ -234,15 +191,20 @@ vexAutonomous( void *arg )
         }
 
         return speedArray;
-
-    }
-
-
-    else if(calledFrom == 0)
-    // It must have been called from auto
+        
+   // This is here so that drivers can bypass the jerk control
+    else 
     {
-
+           vexMotorSet(bottomRight, -(valueTurn) );
+            vexMotorSet(bottomLeft, valueTurn);
+            vexMotorSet(topRight, -(valueTurn) );
+            vexMotorSet(topLeft, valueTurn);
     }
+    
+    }
+
+
+   
 
 }
 
@@ -275,7 +237,7 @@ vexOperator( void *arg )
         {
 
         // the 1 signifies that this call came from the user portion of movement
-        vexBaseControl(1, vexControllerget(Ch3), vexControllerget(Ch1));
+        vexBaseControl(vexControllerget(Ch3), vexControllerget(Ch1), vexControllerGet(Btn5D));
 
 
         // Don't hog cpu
