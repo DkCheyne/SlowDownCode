@@ -76,6 +76,12 @@ static  vexMotorCfg mConfig[kVexMotorNum] = {
 
 
 /*-----------------------------------------------------------------------------*/
+/** Global Varibles here
+*/
+int speedArray[2] = {0, 0};
+
+
+/*-----------------------------------------------------------------------------*/
 /** @brief      User setup                                                     */
 /*-----------------------------------------------------------------------------*/
 /** @details
@@ -105,7 +111,7 @@ vexUserSetup()
 void
 vexUserInit()
 {
-int speedArray[2] = {0, 0};
+
 
 }
 
@@ -144,11 +150,10 @@ vexAutonomous( void *arg )
 /** @details
  *  This function determines how the base moves
  */
- int
- vexBaseControl(int valueForward, int valueTurn, int Turbo);
+ void vexBaseControl(int valueForward, int valueTurn, int Turbo)
 {
     // 1 means that it was called from userControl
-    if(byPass == 0)
+    if(Turbo == 0)
     {
         // Execute the code for userControl
 
@@ -171,7 +176,7 @@ vexAutonomous( void *arg )
         }
         
         // Turning Jerk Control
-        if ((valueTurn - speedArray[1]) > 2);
+        if ((valueTurn - speedArray[1]) > 2)
         {
             vexMotorSet(bottomRight, -(speedArray[1] + 2) );
             vexMotorSet(bottomLeft, (speedArray[1] + 2) );
@@ -190,22 +195,16 @@ vexAutonomous( void *arg )
 
         }
 
-        return speedArray;
         
+    }  
    // This is here so that drivers can bypass the jerk control
     else 
     {
-           vexMotorSet(bottomRight, -(valueTurn) );
+            vexMotorSet(bottomRight, -(valueTurn) );
             vexMotorSet(bottomLeft, valueTurn);
             vexMotorSet(topRight, -(valueTurn) );
             vexMotorSet(topLeft, valueTurn);
     }
-    
-    }
-
-
-   
-
 }
 
 
@@ -236,13 +235,13 @@ vexOperator( void *arg )
     while(!chThdShouldTerminate())
         {
             // Button so that we can move slowly for accurate control.
-            if(vexControllerget(Btn5L))
+            if(vexControllerGet(Btn5U) == 1)
             {
-                vexBaseControl(.2 * vexControllerget(Ch3), .2 * vexControllerget(Ch1), vexControllerGet(Btn5D) )
+                vexBaseControl(.2 * vexControllerGet(Ch3), .2 * vexControllerGet(Ch1), vexControllerGet(Btn5D) );
             }
 
             // the 1 signifies that this call came from the user portion of movement
-            vexBaseControl(vexControllerget(Ch3), vexControllerget(Ch1), vexControllerGet(Btn5D));
+            vexBaseControl(vexControllerGet(Ch3), vexControllerGet(Ch1), vexControllerGet(Btn5D));
 
 
         // Don't hog cpu
