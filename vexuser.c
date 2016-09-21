@@ -235,9 +235,14 @@ vexOperator( void *arg )
     // Run until asked to terminate
     while(!chThdShouldTerminate())
         {
+            // Button so that we can move slowly for accurate control.
+            if(vexControllerget(Btn5L))
+            {
+                vexBaseControl(.2 * vexControllerget(Ch3), .2 * vexControllerget(Ch1), vexControllerGet(Btn5D) )
+            }
 
-        // the 1 signifies that this call came from the user portion of movement
-        vexBaseControl(vexControllerget(Ch3), vexControllerget(Ch1), vexControllerGet(Btn5D));
+            // the 1 signifies that this call came from the user portion of movement
+            vexBaseControl(vexControllerget(Ch3), vexControllerget(Ch1), vexControllerGet(Btn5D));
 
 
         // Don't hog cpu
