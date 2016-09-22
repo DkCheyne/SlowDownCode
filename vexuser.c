@@ -1,4 +1,6 @@
 
+
+
 /*-----------------------------------------------------------------------------*/
 /*                                                                             */
 /*                        Copyright (c) Derek Cheyne                           */
@@ -98,7 +100,7 @@ vexUserSetup()
     #define bottomRight kVexMotor_2
     #define topLeft kVexMotor_3
     #define topRight kVexMotor_4
-    #define transmissionMotor kvexMotor_5
+    #define transmissionMotor kVexMotor_5
 
 }
 
@@ -219,21 +221,18 @@ vexAutonomous( void *arg )
  * The motor will run in a set direction for a period of time.
  * This is toggleable
  */
- void vexTransmission(bool bit)
+ void vexTransmission()
  {
-         if (vexContollerGet(Btn7R) == 1)
-         {
-                 bit = true;
-         }
-         while(bit == true)
-         {
-                 vexMotorSet(transmissionMotor, 50);
-                 if (vexControllerGet(Btn7R) == 1)
-                 {
-                         bit = false;
-                 }
-                 vexMotorSet(transmissionMotor, 0);
-         }
+ 	bool bit = false;
+    if (vexControllerGet(Btn7R) == 1)
+    {
+        bit = true;
+    }
+    while(vexControllerGet(Btn7R) == 1)
+    {
+     vexMotorSet(transmissionMotor, 30);            
+    }
+    vexMotorSet(transmissionMotor, 0);
  }
  
 
@@ -279,6 +278,5 @@ vexOperator( void *arg )
 
     return (msg_t)0;
 }
-
 
 
