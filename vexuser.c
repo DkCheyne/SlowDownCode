@@ -79,6 +79,7 @@ static  vexMotorCfg mConfig[kVexMotorNum] = {
 /** Global Varibles here
 */
 int speedArray[2] = {0, 0};
+bool transmissionSpot = false;
 
 
 /*-----------------------------------------------------------------------------*/
@@ -209,7 +210,28 @@ vexAutonomous( void *arg )
 
 
 
-
+/*-----------------------------------------------------------------------------*/
+/** @brief      Transmittion Control                                                 */
+/*-----------------------------------------------------------------------------*/
+/** @details
+ *  This function is called to engage Motor(n) to switch gearing.
+ * The motor will run in a set direction for a period of time.
+ * This is toggleable
+ */
+ void vexTransmission(bool bit)
+ {
+         // bit == false represents that transmission is in the base position of arm motion
+         if ( vexControllerGet(Btn7L) == 1 && vexControllerget(Btn7D) == 1 && bit == false)
+        {
+                
+        }
+        // bit == true 
+        else if ( vexControllerGet(Btn7L) == 1 && vexControllerget(Btn7D) == 1 && bit == true)
+        {
+                
+        }
+ }
+ 
 
 
 
@@ -240,7 +262,7 @@ vexOperator( void *arg )
                 vexBaseControl(.2 * vexControllerGet(Ch3), .2 * vexControllerGet(Ch1), vexControllerGet(Btn5D) );
             }
 
-            // the 1 signifies that this call came from the user portion of movement
+            // Btn5D is for "turbo" mode. The jerk control is bypassed with it pressed
             vexBaseControl(vexControllerGet(Ch3), vexControllerGet(Ch1), vexControllerGet(Btn5D));
 
 
