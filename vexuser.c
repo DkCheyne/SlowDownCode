@@ -98,6 +98,7 @@ vexUserSetup()
     #define bottomRight kVexMotor_2
     #define topLeft kVexMotor_3
     #define topRight kVexMotor_4
+    #define transmissionMotor kvexMotor_5
 
 }
 
@@ -220,16 +221,19 @@ vexAutonomous( void *arg )
  */
  void vexTransmission(bool bit)
  {
-         // bit == false represents that transmission is in the base position of arm motion
-         if ( vexControllerGet(Btn7L) == 1 && vexControllerget(Btn7D) == 1 && bit == false)
-        {
-                
-        }
-        // bit == true 
-        else if ( vexControllerGet(Btn7L) == 1 && vexControllerget(Btn7D) == 1 && bit == true)
-        {
-                
-        }
+         if (vexContollerGet(Btn7R) == 1)
+         {
+                 bit = true;
+         }
+         while(bit == true)
+         {
+                 vexMotorSet(transmissionMotor, 50);
+                 if (vexControllerGet(Btn7R) == 1)
+                 {
+                         bit = false;
+                 }
+                 vexMotorSet(transmissionMotor, 0);
+         }
  }
  
 
@@ -264,6 +268,9 @@ vexOperator( void *arg )
 
             // Btn5D is for "turbo" mode. The jerk control is bypassed with it pressed
             vexBaseControl(vexControllerGet(Ch3), vexControllerGet(Ch1), vexControllerGet(Btn5D));
+            
+            //Transmission Test function
+            vexTransmission();
 
 
         // Don't hog cpu
