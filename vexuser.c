@@ -1,4 +1,3 @@
-
 /*-----------------------------------------------------------------------------*/
 /*                                                                             */
 /*                        Copyright (c) Derek Cheyne                           */
@@ -62,9 +61,9 @@ static  vexDigiCfg  dConfig[kVexDigital_Num] = {
 };
 
 static  vexMotorCfg mConfig[kVexMotorNum] = {
-        { kVexMotor_1,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
-        { kVexMotor_2,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
-        { kVexMotor_3,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
+        { kVexMotor_1,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorIME,        kImeChannel_1},
+        { kVexMotor_2,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorIME,        kImeChannel_2},
+        { kVexMotor_3,      kVexMotorUndefined,      kVexMotorNormal,     kVexSensorIME,        kImeChannel_3},
         { kVexMotor_4,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_5,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
         { kVexMotor_6,      kVexMotorUndefined,      kVexMotorNormal,       kVexSensorNone,        0 },
@@ -93,8 +92,8 @@ vexUserSetup()
     vexDigitalConfigure( dConfig, DIG_CONFIG_SIZE( dConfig ) );
     vexMotorConfigure( mConfig, MOT_CONFIG_SIZE( mConfig ) );
 
-    #define bottomLeft kVexMotor_1
-    #define bottomRight kVexMotor_2
+    #define bottomRight kVexMotor_1
+    #define bottomLeft kVexMotor_2
     #define topLeft kVexMotor_3
     #define topRight kVexMotor_4
 
@@ -132,7 +131,7 @@ vexAutonomous( void *arg )
     while(1)
         {
         
-        
+      
 
         // Don't hog cpu
         // Must be at end of auton
@@ -153,7 +152,7 @@ vexAutonomous( void *arg )
  void vexBaseControl(int valueForward, int valueTurn, int Turbo)
 {
     // 1 means that it was called from userControl
-    if(Turbo == 0)
+    if(Turbo == 1)
     {
         // Execute the code for userControl
 
@@ -161,17 +160,32 @@ vexAutonomous( void *arg )
         //Going Forward Jerk Control
         if ((valueForward - speedArray[0]) > 2 )
         {
+           // Often one motor is slightly stronger than the other 
+           if (vexMotorPositionGet(bottomLeft) - vexMotorPositionGet(bottomRight)) > 1)
+           {
+             vexMotorSet(bottomRight, speedArray[0] + 1);
+             vexMotorSet(bottomLeft, speedArray[0] + 2);
+             valueForward = speedArray[0];
+             valueForward = valueForward + 2;
+             speedArray[0] = valueForward;
+           }
+
+           else 
+           {
             vexMotorSet(bottomRight, speedArray[0] + 2);
             vexMotorSet(bottomLeft, speedArray[0] + 2);
             valueForward = speedArray[0];
             valueForward = valueForward + 2;
             speedArray[0] = valueForward;
+            }
         
         }
         else if(valueForward - speedArray[0] <= 2 )
         {
             vexMotorSet(bottomRight, valueForward);
             vexMotorSet(bottomLeft, valueForward);
+            speedArray[0] = valueForward;
+            valueForward = valueForward + 2;
             speedArray[0] = valueForward;
         }
         
@@ -230,6 +244,13 @@ vexOperator( void *arg )
     // Must call this
     vexTaskRegister("operator");
 
+    // Nneed to reset encoders right before all the code is run just so that we have a base foreverything to work
+    vexMotorPositionSet(bottomRight, 0);
+    vexMotorPositionSet(bottomLeft, 0);
+    vexMotorPositionSet(topLeft, 0);
+
+
+
 
     // Run until asked to terminate
     while(!chThdShouldTerminate())
@@ -240,8 +261,10 @@ vexOperator( void *arg )
                 vexBaseControl(.2 * vexControllerGet(Ch3), .2 * vexControllerGet(Ch1), vexControllerGet(Btn5D) );
             }
 
-            // the 1 signifies that this call came from the user portion of movement
+            else 
+            {// the 1 signifies that this call came from the user portion of movement
             vexBaseControl(vexControllerGet(Ch3), vexControllerGet(Ch1), vexControllerGet(Btn5D));
+            }
 
 
         // Don't hog cpu
@@ -250,6 +273,5 @@ vexOperator( void *arg )
 
     return (msg_t)0;
 }
-
 
 
