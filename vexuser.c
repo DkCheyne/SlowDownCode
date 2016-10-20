@@ -77,7 +77,30 @@ static  vexMotorCfg mConfig[kVexMotorNum] = {
 /*-----------------------------------------------------------------------------*/
 /** Global Varibles here
 */
-int speedArray[2] = {0, 0};
+
+// Counts how many loops we have been recording IME values after the last turn
+// needs to be over 2 to be able to compair
+int straightLine = 0;
+
+// The most current IME value for topRight motor (top motors were choosen because they show the largest change in rotation at
+// different speeds when "trying" to drive straight)
+
+int newRight = 0;
+
+// The most current IME value for topLeft Motor 
+int newLeft = 0;
+
+// This is taken the loop before we start smart driving
+int oldRight = 0;
+
+// This is taken the loop before we start smart driving
+int oldLeft = 0;
+
+// These are the differences in IME values between any two loops without a turn in the middle
+int differenceRight = 0;
+int differenceLeft = 0;
+int totalDifference = 0;
+
 
 
 /*-----------------------------------------------------------------------------*/
@@ -125,24 +148,99 @@ vexUserInit()
  */
 void vexBaseControl(int forward, int turn)
 {
-
-
-    if (abs(turn) < 20)
-    {
-       vexMotorSet(bottomRight, forward);
-       vexMotorSet(topRight, forward);
-       vexMotorSet(bottomLeft, forward);
-       vexMotorSet(topLeft,  forward);
-
-    }
-
+  
+    // The controller is indicating a turn is wanted
     if (abs(turn) > 20)
     {
+
+        // This shows that we don't have enough data to compair IME value on motors. I.E not a straight line
+        striatLine = 0;
+     
+        // Just get the Motors to turn
         vexMotorSet(bottomRight, turn);
         vexMotorSet(topRight, turn);
         vexMotorSet(bottomLeft, -turn);
         vexMotorSet(topLeft,  -turn);
     }
+ 
+    // The controller is indicating we don't want a turn
+    if (abs(turn) < 20)
+    {
+       
+       // We don't enough IME data to compair values of straitness
+       if (straightLine < 2)
+       {
+          // We're practically blind here so just make all the motors the same
+          vexMotorSet(bottomRight, forward);
+          vexMotorSet(topRight, forward);
+          vexMotorSet(bottomLeft, forward);
+          vexMotorSet(topLeft,  forward);
+
+          // Record IME values right now to compair next loop if we don't try and turn
+          oldRight = vexMotorPositionGet(topRight);
+          oldLeft = vexMotorPositionGet(topLeft);
+
+          // We just recorded IME values so we can start compairing next loop around
+          straightLine = straightLine + 1;
+
+       }
+
+       // We have enough IME data to start doing some compairisons
+       else if (straightLine > 1)
+       {
+
+        // These are the postions at which the motors are right at this moment
+        newRight = vexMotorPositionGet(topRight);
+        newLeft = vexMotorPositionGet(topLeft);
+
+        // These are the differences between what the motors position was in the last two loops
+        differenceRight = newRight - oldRight;
+        differenceLeft = newLeft - oldLeft;
+
+        // Compaing the who moved at a faster rate than the other in the last two loops
+        totalDifference = differenceRight - differenceLeft;
+
+        switch (totalDifference)
+        {
+
+            // This case is that the right side moved a larger distance than the left did
+            case > 0:
+
+                    // So we need to slow down the right side compaired to the left side
+                    // I need to experiment with these values in order to get the best results
+                    vexMotorSet(bottomRight, forward - 1);
+                    vexMotorSet(topRight, forward - 1);
+                    vexMotorSet(bottomLeft, forward);
+                    vexMotorSet(topLeft,  forward);
+
+            // This case is that the left side movde a larger distance than the right did
+            case < 0:
+
+                    // So we need to slow down the left side compaired ot the right side
+                    // Again going to need to experiment with this
+                    vexMotorSet(bottomRight, forward);
+                    vexMotorSet(topRight, forward);
+                    vexMotorSet(bottomLeft, forward - 1);
+                    vexMotorSet(topLeft,  forward -1 );
+
+            // Edge case, but I just want to make sure its here better safe than sorry
+            case 0:
+
+                    vexMotorSet(bottomRight, forward);
+                    vexMotorSet(topRight, forward);
+                    vexMotorSet(bottomLeft, forward);
+                    vexMotorSet(topLeft,  forward);
+        } 
+
+       }
+
+
+
+
+
+    }
+
+
 
 
 }
@@ -230,3 +328,4 @@ vexOperator( void *arg )
 
     return (msg_t)0;
 }
+
