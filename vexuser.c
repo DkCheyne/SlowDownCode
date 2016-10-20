@@ -92,10 +92,10 @@ vexUserSetup()
     vexDigitalConfigure( dConfig, DIG_CONFIG_SIZE( dConfig ) );
     vexMotorConfigure( mConfig, MOT_CONFIG_SIZE( mConfig ) );
 
-    #define bottomRight kVexMotor_1
-    #define bottomLeft kVexMotor_2
-    #define topLeft kVexMotor_3
-    #define topRight kVexMotor_4
+    #define bottomRight kVexMotor_2
+    #define bottomLeft kVexMotor_3
+    #define topLeft kVexMotor_4
+    #define topRight kVexMotor_5
 
 }
 
@@ -113,6 +113,41 @@ vexUserInit()
 
 
 }
+
+
+
+
+/*-----------------------------------------------------------------------------*/
+/** @brief      Base control                                                   */
+/*-----------------------------------------------------------------------------*/
+/** @details
+ *  This functions controls the movement of the base
+ */
+void vexBaseControl(int forward, int turn)
+{
+
+
+    if (abs(turn) < 20)
+    {
+       vexMotorSet(bottomRight, forward);
+       vexMotorSet(topRight, forward);
+       vexMotorSet(bottomLeft, forward);
+       vexMotorSet(topLeft,  forward);
+
+    }
+
+    if (abs(turn) > 20)
+    {
+        vexMotorSet(bottomRight, turn);
+        vexMotorSet(topRight, turn);
+        vexMotorSet(bottomLeft, -turn);
+        vexMotorSet(topLeft,  -turn);
+    }
+
+
+}
+
+
 
 /*-----------------------------------------------------------------------------*/
 /** @brief      Autonomous                                                     */
@@ -143,95 +178,6 @@ vexAutonomous( void *arg )
 
 
 
-/*-----------------------------------------------------------------------------*/
-/** @brief      Base Control                                                   */
-/*-----------------------------------------------------------------------------*/
-/** @details
- *  This function determines how the base moves
- */
- void vexBaseControl(int valueForward, int valueTurn, int Turbo)
-{
-    int unadjustedTurn = 0;
-
-    // 0 means that the turbo button isn't pressed (btn5D)
-    if(Turbo == 0)
-    {
-        // Execute the code for userControl
-
-
-        //Going Forward Jerk Control
-        // asb(vexControllerGet) is there so that if we are trying to turn it doesn't fight itself.
-        if (abs((valueForward - speedArray[0])) > 2  && abs(vexControllerGet(Ch3)) < 40)
-        {
-            
-           // Often one motor is slightly stronger than the other so we have to correct for it
-		   // This block is for moving Forward
-           if ((vexMotorPositionGet(bottomLeft) - vexMotorPositionGet(bottomRight) > 1))
-           {
-             vexMotorSet(bottomRight, speedArray[0] + 1);
-             vexMotorSet(bottomLeft, speedArray[0] + 2);
-             valueForward = speedArray[0];
-             valueForward = valueForward + 2;
-             speedArray[0] = valueForward;
-           }
-
-           if ((vexMotorPositionGet(bottomLeft) - vexMotorPositionGet(bottomRight) < 1)) 
-           {
-            vexMotorSet(bottomRight, speedArray[0] + 1);
-            vexMotorSet(bottomLeft, speedArray[0] + 2);
-            valueForward = speedArray[0];
-            valueForward = valueForward + 2;
-            speedArray[0] = valueForward;
-            }
-        
-        }
-        
-        else if(abs(valueForward - speedArray[0]) <= 2 )
-        {
-            vexMotorSet(bottomRight, valueForward);
-            vexMotorSet(bottomLeft, valueForward);
-            vexMotorSet(topRight, valueForward);
-            speedArray[0] = valueForward;
-            valueForward = valueForward + 2;
-            speedArray[0] = valueForward;
-        }
-        
-        // Turning Jerk Control
-		// This block is for turning
-        if ((valueTurn - speedArray[1]) > 2)
-        {
-            vexMotorSet(bottomRight, (speedArray[1] + 2) );
-            vexMotorSet(bottomLeft, (speedArray[1] + 2) );
-            vexMotorSet(topRight, (speedArray[1] + 2) );
-            vexMotorSet(topLeft, (speedArray[1] + 2) );
-            valueTurn = speedArray[1];
-            valueTurn = valueTurn + 2;
-            speedArray[1] = valueTurn;
-        }
-        else if( (valueTurn - speedArray[1] < 2) )
-        {
-            vexMotorSet(bottomRight, (valueTurn) );
-            vexMotorSet(bottomLeft, valueTurn);
-            vexMotorSet(topRight, (valueTurn) );
-            vexMotorSet(topLeft, valueTurn);
-
-        }
-
-        
-    }  
-   // This is here so that drivers can bypass the jerk control
-    else 
-    {
-            vexMotorSet(bottomRight, (valueTurn) );
-            vexMotorSet(bottomLeft, valueTurn);
-            vexMotorSet(topRight, (valueTurn) );
-            vexMotorSet(topLeft, valueTurn);
-    }
-}
-
-
-
-
 
 
 
@@ -256,33 +202,31 @@ vexOperator( void *arg )
     vexMotorPositionSet(bottomRight, 0);
     vexMotorPositionSet(bottomLeft, 0);
     vexMotorPositionSet(topLeft, 0);
+    vexMotorPositionSet(topRight, 0);
 
 
 
 
     // Run until asked to terminate
     while(!chThdShouldTerminate())
+       
+       
+
+        // This is here so that we can move slowly to move more accuratly 
+        if (vexControllerGet(Btn5D) == 1)
         {
-            if(vexControllerGet(Btn7L) == 0)
-            {
-                 // Button so that we can move slowly for accurate control.
-                if(vexControllerGet(Btn5U) == 1)
-                {
-                    vexBaseControl(.2 * vexControllerGet(Ch3), .2 * vexControllerGet(Ch1), vexControllerGet(Btn5D) );
-                }
+            vexBaseControl(.2 * vexControllerGet(Ch3), .2 * vexControllerGet(Ch1));
+        }
 
-                else 
-                {// the 1 signifies that this call came from the user portion of movement
-                    vexBaseControl(vexControllerGet(Ch3), vexControllerGet(Ch1), vexControllerGet(Btn5D));
-                }
-
-            }
-           
+        else 
+        {
+             vexBaseControl(vexControllerGet(Ch3), vexControllerGet(Ch1));
+        }
 
 
         // Don't hog cpu
         vexSleep( 25 );
-        }
+        
 
     return (msg_t)0;
 }
